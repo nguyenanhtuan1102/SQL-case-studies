@@ -1,8 +1,7 @@
-# SQL USE CASE: Danny's Dinner
+# Data Bank (SQL case study)
+![image](https://github.com/user-attachments/assets/7845048f-6ad4-466c-9d9a-cd5216898ef0)
 
-![image](https://github.com/user-attachments/assets/5a7077c0-ec1b-4ad4-88c7-ad93518f76e0)
-
-### The Guide
+## The Guide
 
 I use Microsoft SQL Sever for this case study walkthrough
 
@@ -10,187 +9,175 @@ I use Microsoft SQL Sever for this case study walkthrough
 2. Run ```schema.sql``` file in the database
 3. Use ```solutions.sql``` file to check the solutions
 
-### The Relationship Diagram
-![image](https://github.com/user-attachments/assets/9cec0036-7080-4641-bb05-abe52b3add6f)
+## The Relationship Diagram
+![diagram](https://github.com/user-attachments/assets/f86d4153-283c-40e2-8603-98ab5e6b3130)
 
-### Questions
+## Questions
+### A. Customer Nodes Exploration
+1. How many unique nodes are there on the Data Bank system?
+2. What is the number of nodes per region?
+3. How many customers are allocated to each region?
+4. How many days on average are customers reallocated to a different node?
+5. What is the median, 80th and 95th percentile for this same reallocation days metric for each region?
 
-1. What is the total amount each customer spent at the restaurant?
-2. How many days has each customer visited the restaurant?
-3. What was the first item from the menu purchased by each customer?
-4. What is the most purchased item on the menu and how many times was it purchased by all customers?
-5. Which item was the most popular for each customer?
-6. Which item was purchased first by the customer after they became a member?
-7. Which item was purchased just before the customer became a member?
-8. What is the total items and amount spent for each member before they became a member?
-9. If each $1 spent equates to 10 points and sushi has a 2x points multiplier - how many points would each customer have?
-10. In the first week after a customer joins the program (including their join date) they earn 2x points on all items, not just sushi - how many points do customer A and B have at the end of January?
+### B. Customer Transactions
+1. What is the unique count and total amount for each transaction type?
+2. What is the average total historical deposit counts and amounts for all customers?
+3. For each month - how many Data Bank customers make more than 1 deposit and either 1 purchase or 1 withdrawal in a single month?
+4. What is the closing balance for each customer at the end of the month?
+5. What is the percentage of customers who increase their closing balance by more than 5%?
 
 
-### Solutions
+## Solutions
 
-1. What is the total amount each customer spent at the restaurant?
+### A. Customer Nodes Exploration
+**1. How many unique nodes are there on the Data Bank system?**
 ```
-SELECT s.customer_id, SUM(me.price) AS "Total amount each customer spent"
-FROM dannys_diner.sales s
-INNER JOIN dannys_diner.menu me ON s.product_id = me.product_id
-GROUP BY s.customer_id;
-GO
+SELECT COUNT(DISTINCT node_id) AS number_of_unique_nodes 
+FROM DB.customer_nodes;
 ```
+![image](https://github.com/user-attachments/assets/e978a32e-792d-4e8c-9948-b3582df74ed9)
 
-![image](https://github.com/user-attachments/assets/66a2d0e8-cf71-46c5-997c-8a3aefef0341)
-
-2. How many days has each customer visited the restaurant?
+**2. What is the number of nodes per region?**
 ```
-SELECT customer_id, COUNT(DISTINCT order_date) AS "Total days visited"
-FROM dannys_diner.sales
-GROUP BY customer_id;
-GO
+SELECT R.region_id, R.region_name, COUNT(N.node_id) AS node_count
+FROM DB.regions R
+INNER JOIN DB.customer_nodes N
+ON R.region_id = N.region_id
+GROUP BY R.region_id, R.region_name;
 ```
+![image](https://github.com/user-attachments/assets/d867e2d5-4c03-4c84-bf25-7840f2d1b2cc)
 
-![image](https://github.com/user-attachments/assets/07522f75-6df1-4ee9-9f32-975a605b1737)
-
-3. What was the first item from the menu purchased by each customer?
+**3. How many customers are allocated to each region?**
 ```
-WITH PURCHASED_RANK AS (
-  SELECT customer_id, 
-         order_date,
-         product_name, 
-         RANK() OVER (PARTITION BY customer_id ORDER BY order_date ASC) as ranked
-  FROM dannys_diner.sales s
-  LEFT JOIN dannys_diner.menu me ON s.product_id = me.product_id
+SELECT R.region_id, R.region_name, COUNT(DISTINCT C.customer_id) AS number_of_customer
+FROM DB.customer_nodes AS C
+JOIN DB.regions AS R
+ON C.region_id = R.region_id
+GROUP BY R.region_id, R.region_name;
+```
+![image](https://github.com/user-attachments/assets/6c47b028-9b47-4de6-9473-a3c67277e52d)
+
+**4. How many days on average are customers reallocated to a different node?**
+```
+SELECT AVG(DATEDIFF(day, start_date, end_date)) AS Days_on_average
+FROM DB.customer_nodes
+WHERE end_date != '9999-12-31';
+```
+![image](https://github.com/user-attachments/assets/ba2e9a24-b38d-4969-a267-1c2e0cfc9838)
+
+**5. What is the median, 80th and 95th percentile for this same reallocation days metric for each region?**
+```
+WITH DS AS (
+    SELECT region_id, DATEDIFF(day, start_date, end_date) AS allocation_days
+    FROM DB.customer_nodes
+    WHERE end_date != '9999-12-31'
 )
-SELECT DISTINCT customer_id, product_name
-FROM PURCHASED_RANK 
-WHERE ranked = 1;
-GO
-```
 
-![image](https://github.com/user-attachments/assets/71a13b45-9e07-4eb3-8fc2-025748be4da5)
-
-4. What is the most purchased item on the menu and how many times was it purchased by all customers?
+SELECT DISTINCT region_id, 
+       PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY allocation_days) OVER (PARTITION BY region_id) AS median,
+       PERCENTILE_DISC(0.8) WITHIN GROUP (ORDER BY allocation_days) OVER (PARTITION BY region_id) AS #80percentile,
+       PERCENTILE_DISC(0.95) WITHIN GROUP (ORDER BY allocation_days) OVER (PARTITION BY region_id) AS #95percentile
+FROM DS;
 ```
-SELECT TOP 1 s.product_id, product_name, COUNT(s.product_id) AS "Times it was purchased"
-FROM dannys_diner.sales s
-INNER JOIN dannys_diner.menu m ON s.product_id = m.product_id
-GROUP BY s.product_id, product_name
-ORDER BY [Times it was purchased] DESC;
-GO
-```
+![image](https://github.com/user-attachments/assets/62e65073-f095-4f20-9bfd-a05a184a9a54)
 
-![image](https://github.com/user-attachments/assets/f4c0e582-753f-4cc4-882e-deea5eb8731b)
-
-5. Which item was the most popular for each customer?
+### B. Customer Transactions
+**1. What is the unique count and total amount for each transaction type?**
 ```
-WITH ITEM_RANKED AS (
-  SELECT customer_id, s.product_id, COUNT(s.product_id) AS "Most_popular_items"
-  FROM dannys_diner.sales s
-  INNER JOIN dannys_diner.menu m ON s.product_id = m.product_id
-  GROUP BY customer_id, s.product_id
+SELECT txn_type, COUNT(*) AS unique_count, SUM(txn_amount) AS total_amount
+FROM DB.customer_transactions
+GROUP BY txn_type;
+```
+![image](https://github.com/user-attachments/assets/ce89ab85-bd14-4560-8667-875bcff4ab01)
+
+**2. What is the average total historical deposit counts and amounts for all customers?**
+```
+WITH DS AS (
+    SELECT customer_id, COUNT(customer_id) AS count_deposit, AVG(txn_amount) AS amount_deposit
+    FROM DB.customer_transactions
+    WHERE txn_type = 'deposit'
+    GROUP BY customer_id
+)
+SELECT AVG(count_deposit) AS average_count, AVG(amount_deposit) AS average_amount
+FROM DS;
+```
+![image](https://github.com/user-attachments/assets/414eafb5-c6a0-4ae8-ae11-a28ae3198843)
+
+**3. For each month - how many Data Bank customers make more than 1 deposit and either 1 purchase or 1 withdrawal in a single month?**
+```
+WITH DS AS (
+    SELECT customer_id, DATEPART(month, txn_date) AS M,
+           SUM(CASE WHEN txn_type = 'deposit' THEN 1 ELSE 0 END) AS Count_deposit,
+           SUM(CASE WHEN txn_type = 'purchase' THEN 1 ELSE 0 END) AS Count_purchase,
+           SUM(CASE WHEN txn_type = 'withdrawal' THEN 1 ELSE 0 END) AS Count_withdrawal
+    FROM DB.customer_transactions
+    GROUP BY customer_id, DATEPART(month, txn_date)
+)
+SELECT M as month, COUNT(*) AS amount_customer
+FROM DS
+WHERE count_deposit > 1 AND (count_purchase > 1 OR count_withdrawal > 1)
+GROUP BY M;
+```
+![image](https://github.com/user-attachments/assets/32291ce7-a6d6-4ed9-9a73-5d95b266f32c)
+
+**4. What is the closing balance for each customer at the end of the month?**
+```
+WITH 
+DS1 AS (
+    SELECT customer_id, DATEPART(month, txn_date) AS monthh,
+           SUM(CASE WHEN txn_type = 'deposit' THEN txn_amount ELSE 0 END) AS count_deposit,
+           SUM(CASE WHEN txn_type = 'purchase' THEN -txn_amount ELSE 0 END) AS count_purchase,
+           SUM(CASE WHEN txn_type = 'withdrawal' THEN -txn_amount ELSE 0 END) AS count_withdrawal
+    FROM DB.customer_transactions
+    GROUP BY customer_id, DATEPART(month, txn_date)
 ),
-ITEM_RANKED2 AS (
-  SELECT customer_id, product_id, Most_popular_items, 
-         RANK() OVER (PARTITION BY customer_id ORDER BY Most_popular_items DESC) AS ranked 
-  FROM ITEM_RANKED
+DS2 AS (
+    SELECT customer_id, monthh, count_deposit + count_purchase + count_withdrawal AS balance
+    FROM DS1
+),
+DS3 AS (
+    SELECT customer_id, monthh, balance, 
+           LAG(balance, 1) OVER (PARTITION BY customer_id ORDER BY customer_id) AS pre_balance
+    FROM DS2
 )
-SELECT customer_id, product_id, Most_popular_items 
-FROM ITEM_RANKED2
-WHERE ranked = 1;
-GO
+SELECT customer_id, monthh, balance, 
+       CASE WHEN pre_balance IS NULL THEN balance ELSE balance - pre_balance END AS chanced_balance
+FROM DS3
+ORDER BY customer_id;
 ```
+![image](https://github.com/user-attachments/assets/0f53a5d6-97da-4160-b9b2-e1b014f4456c)
 
-![image](https://github.com/user-attachments/assets/6784062a-350a-48d6-918e-6a15d11ae172)
-
-6. Which item was purchased first by the customer after they became a member?
+**5. What is the percentage of customers who increase their closing balance by more than 5%?**
 ```
-WITH RANK_PURCHASED_DATE_ITEM AS (
-  SELECT s.customer_id, 
-         s.product_id, 
-         product_name, 
-         order_date, 
-         RANK() OVER (PARTITION BY s.customer_id ORDER BY order_date ASC) AS ranked
-  FROM dannys_diner.members mb
-  INNER JOIN dannys_diner.sales s ON mb.customer_id = s.customer_id
-  INNER JOIN dannys_diner.menu me ON me.product_id = s.product_id
-  WHERE order_date >= join_date
+WITH 
+DS1 AS (
+    SELECT customer_id, DATEPART(month, txn_date) AS monthh,
+           SUM(CASE WHEN txn_type = 'deposit' THEN txn_amount ELSE 0 END) AS count_deposit,
+           SUM(CASE WHEN txn_type = 'purchase' THEN -txn_amount ELSE 0 END) AS count_purchase,
+           SUM(CASE WHEN txn_type = 'withdrawal' THEN -txn_amount ELSE 0 END) AS count_withdrawal
+    FROM DB.customer_transactions
+    GROUP BY customer_id, DATEPART(month, txn_date)
+),
+DS2 AS (
+    SELECT customer_id, monthh, count_deposit + count_purchase + count_withdrawal AS balance
+    FROM DS1
+),
+DS3 AS (
+    SELECT customer_id, monthh, balance, 
+           FIRST_VALUE(balance) OVER (PARTITION BY customer_id ORDER BY customer_id) AS opening_balance,
+           LAST_VALUE(balance) OVER (PARTITION BY customer_id ORDER BY customer_id DESC) AS ending_balance
+    FROM DS2
+),
+DS4 AS (
+    SELECT *, 
+           ((ending_balance - opening_balance) * 100 / ABS(opening_balance)) AS growing_rate
+    FROM DS3
+    WHERE ((ending_balance - opening_balance) * 100 / ABS(opening_balance)) >= 5 AND ending_balance > opening_balance
 )
-SELECT customer_id, product_id, product_name, order_date 
-FROM RANK_PURCHASED_DATE_ITEM
-WHERE ranked = 1;
-GO
+SELECT 
+    CAST(COUNT(DISTINCT(customer_id)) AS FLOAT) * 100 /
+    (SELECT CAST(COUNT(DISTINCT(customer_id)) AS FLOAT) FROM DB.customer_transactions) AS percentage_of_customer
+FROM DS4;
 ```
-
-![image](https://github.com/user-attachments/assets/4641bc31-47d1-47b7-ac27-7dcc322439b9)
-
-7. Which item was purchased just before the customer became a member?
-```
-WITH RANK_PURCHASED_DATE_ITEM AS (
-  SELECT s.customer_id, 
-         s.product_id, 
-         product_name, 
-         order_date, 
-         RANK() OVER (PARTITION BY s.customer_id ORDER BY order_date DESC) AS ranked
-  FROM dannys_diner.sales s
-  INNER JOIN dannys_diner.members mb ON s.customer_id = mb.customer_id
-  INNER JOIN dannys_diner.menu me ON s.product_id = me.product_id
-  WHERE order_date < join_date
-)
-SELECT customer_id, product_id, product_name, order_date 
-FROM RANK_PURCHASED_DATE_ITEM
-WHERE ranked = 1;
-GO
-```
-
-![image](https://github.com/user-attachments/assets/338e1839-f9b7-432f-a3ca-cdf6c89d15b1)
-
-8. What is the total items and amount spent for each member before they became a member?
-```
-SELECT s.customer_id,
-       COUNT(s.product_id) AS "Total items",
-       SUM(me.price) AS "Total amount spent"
-FROM dannys_diner.sales s 
-INNER JOIN dannys_diner.members mb ON s.customer_id = mb.customer_id
-INNER JOIN dannys_diner.menu me ON s.product_id = me.product_id
-WHERE join_date > order_date
-GROUP BY s.customer_id;
-GO
-```
-
-![image](https://github.com/user-attachments/assets/ecf683a9-1834-4785-8b7f-ab4d41924b17)
-
-9. If each $1 spent equates to 10 points and sushi has a 2x points multiplier - how many points would each customer have?
-```
-SELECT s.customer_id,
-       SUM(
-         CASE
-           WHEN me.product_name = 'sushi' THEN me.price * 2 * 10
-           ELSE me.price * 10
-         END
-       ) AS Points
-FROM dannys_diner.sales s
-FULL OUTER JOIN dannys_diner.menu me ON s.product_id = me.product_id
-GROUP BY s.customer_id;
-GO
-```
-
-![image](https://github.com/user-attachments/assets/fc453420-9a45-4900-922f-3faa48f13af6)
-
-10. In the first week after a customer joins the program (including their join date) they earn 2x points on all items, not just sushi - how many points do customer A and B have at the end of January?
-```
-SELECT s.customer_id,
-       SUM(
-         CASE
-           WHEN me.product_name = 'sushi' THEN me.price * 2 * 10
-           WHEN ((order_date >= join_date) AND (order_date <= DATEADD(DAY, 7, join_date))) THEN me.price * 2 * 10
-           ELSE me.price * 10
-         END
-       ) AS Points
-FROM dannys_diner.sales s
-INNER JOIN dannys_diner.menu me ON s.product_id = me.product_id
-INNER JOIN dannys_diner.members mb ON s.customer_id = mb.customer_id
-WHERE (s.customer_id = 'A' OR s.customer_id = 'B') AND MONTH(order_date) <= 1
-GROUP BY s.customer_id;
-GO
-```
-
-![image](https://github.com/user-attachments/assets/82e784e3-cf25-44d1-bd32-c385891494c4)
+![image](https://github.com/user-attachments/assets/56d3209b-e29f-417c-8abf-37c3681d7f61)
