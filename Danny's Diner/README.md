@@ -1,8 +1,8 @@
 # SQL USE CASE: Danny's Dinner
 
-![image](https://github.com/user-attachments/assets/5a7077c0-ec1b-4ad4-88c7-ad93518f76e0)
+![cover](https://github.com/user-attachments/assets/8fa22898-b4ab-4f6d-a983-6a2ee99a41f4)
 
-### The Guide
+## The Guide
 
 I use Microsoft SQL Sever for this case study walkthrough
 
@@ -10,10 +10,11 @@ I use Microsoft SQL Sever for this case study walkthrough
 2. Run ```schema.sql``` file in the database
 3. Use ```solutions.sql``` file to check the solutions
 
-### The Relationship Diagram
-![image](https://github.com/user-attachments/assets/9cec0036-7080-4641-bb05-abe52b3add6f)
+## The Relationship Diagram
 
-### Questions
+![relationship-diagram](https://github.com/user-attachments/assets/82c3fa1e-47ba-408e-b9a8-4145b5ed2127)
+
+## Questions
 
 1. What is the total amount each customer spent at the restaurant?
 2. How many days has each customer visited the restaurant?
@@ -27,9 +28,9 @@ I use Microsoft SQL Sever for this case study walkthrough
 10. In the first week after a customer joins the program (including their join date) they earn 2x points on all items, not just sushi - how many points do customer A and B have at the end of January?
 
 
-### Solutions
+## Solutions
 
-1. What is the total amount each customer spent at the restaurant?
+**1. What is the total amount each customer spent at the restaurant?**
 ```
 SELECT s.customer_id, SUM(me.price) AS "Total amount each customer spent"
 FROM dannys_diner.sales s
@@ -38,9 +39,9 @@ GROUP BY s.customer_id;
 GO
 ```
 
-![image](https://github.com/user-attachments/assets/66a2d0e8-cf71-46c5-997c-8a3aefef0341)
+![solution-1](https://github.com/user-attachments/assets/c81192cc-4056-478e-aaff-6f79c75d32ef)
 
-2. How many days has each customer visited the restaurant?
+**2. How many days has each customer visited the restaurant?**
 ```
 SELECT customer_id, COUNT(DISTINCT order_date) AS "Total days visited"
 FROM dannys_diner.sales
@@ -48,9 +49,9 @@ GROUP BY customer_id;
 GO
 ```
 
-![image](https://github.com/user-attachments/assets/07522f75-6df1-4ee9-9f32-975a605b1737)
+![solution-2](https://github.com/user-attachments/assets/141c3a8d-8aff-4c2c-af59-d71e4dc7edd3)
 
-3. What was the first item from the menu purchased by each customer?
+**3. What was the first item from the menu purchased by each customer?**
 ```
 WITH PURCHASED_RANK AS (
   SELECT customer_id, 
@@ -65,10 +66,9 @@ FROM PURCHASED_RANK
 WHERE ranked = 1;
 GO
 ```
+![solution-3](https://github.com/user-attachments/assets/ba81cb48-4926-4ac0-add0-5eaaecd69604)
 
-![image](https://github.com/user-attachments/assets/71a13b45-9e07-4eb3-8fc2-025748be4da5)
-
-4. What is the most purchased item on the menu and how many times was it purchased by all customers?
+**4. What is the most purchased item on the menu and how many times was it purchased by all customers?**
 ```
 SELECT TOP 1 s.product_id, product_name, COUNT(s.product_id) AS "Times it was purchased"
 FROM dannys_diner.sales s
@@ -78,9 +78,9 @@ ORDER BY [Times it was purchased] DESC;
 GO
 ```
 
-![image](https://github.com/user-attachments/assets/f4c0e582-753f-4cc4-882e-deea5eb8731b)
+![solution-4](https://github.com/user-attachments/assets/309f5470-e35f-4d7b-b65e-5971997f20f2)
 
-5. Which item was the most popular for each customer?
+**5. Which item was the most popular for each customer?**
 ```
 WITH ITEM_RANKED AS (
   SELECT customer_id, s.product_id, COUNT(s.product_id) AS "Most_popular_items"
@@ -99,9 +99,9 @@ WHERE ranked = 1;
 GO
 ```
 
-![image](https://github.com/user-attachments/assets/6784062a-350a-48d6-918e-6a15d11ae172)
+![solution-5](https://github.com/user-attachments/assets/732428bf-1128-4a6d-aaa8-491e3e9b4889)
 
-6. Which item was purchased first by the customer after they became a member?
+**6. Which item was purchased first by the customer after they became a member?**
 ```
 WITH RANK_PURCHASED_DATE_ITEM AS (
   SELECT s.customer_id, 
@@ -120,9 +120,9 @@ WHERE ranked = 1;
 GO
 ```
 
-![image](https://github.com/user-attachments/assets/4641bc31-47d1-47b7-ac27-7dcc322439b9)
+![solution-6](https://github.com/user-attachments/assets/d74a1851-995a-46e3-ac67-c3c4f109eb1d)
 
-7. Which item was purchased just before the customer became a member?
+**7. Which item was purchased just before the customer became a member?**
 ```
 WITH RANK_PURCHASED_DATE_ITEM AS (
   SELECT s.customer_id, 
@@ -141,9 +141,9 @@ WHERE ranked = 1;
 GO
 ```
 
-![image](https://github.com/user-attachments/assets/338e1839-f9b7-432f-a3ca-cdf6c89d15b1)
+![solution-7](https://github.com/user-attachments/assets/48de5b0a-0a84-41e0-b6ed-7e68ae396b30)
 
-8. What is the total items and amount spent for each member before they became a member?
+**8. What is the total items and amount spent for each member before they became a member?**
 ```
 SELECT s.customer_id,
        COUNT(s.product_id) AS "Total items",
@@ -156,9 +156,9 @@ GROUP BY s.customer_id;
 GO
 ```
 
-![image](https://github.com/user-attachments/assets/ecf683a9-1834-4785-8b7f-ab4d41924b17)
+![solution-8](https://github.com/user-attachments/assets/6d9757f4-c351-4f19-b41c-2135ea2f8db0)
 
-9. If each $1 spent equates to 10 points and sushi has a 2x points multiplier - how many points would each customer have?
+**9. If each $1 spent equates to 10 points and sushi has a 2x points multiplier - how many points would each customer have?**
 ```
 SELECT s.customer_id,
        SUM(
@@ -173,9 +173,9 @@ GROUP BY s.customer_id;
 GO
 ```
 
-![image](https://github.com/user-attachments/assets/fc453420-9a45-4900-922f-3faa48f13af6)
+![solution-9](https://github.com/user-attachments/assets/bc603779-97e7-43f5-a7b0-7e1d267d5b38)
 
-10. In the first week after a customer joins the program (including their join date) they earn 2x points on all items, not just sushi - how many points do customer A and B have at the end of January?
+**10. In the first week after a customer joins the program (including their join date) they earn 2x points on all items, not just sushi - how many points do customer A and B have at the end of January?**
 ```
 SELECT s.customer_id,
        SUM(
@@ -193,4 +193,4 @@ GROUP BY s.customer_id;
 GO
 ```
 
-![image](https://github.com/user-attachments/assets/82e784e3-cf25-44d1-bd32-c385891494c4)
+![solution-10](https://github.com/user-attachments/assets/007647f3-fb45-4f11-a09c-4c8440dbefed)
