@@ -1,5 +1,5 @@
 # Foodie-Fi (SQL case study)
-![alt text](image.png)
+![alt text](images/cover.png)
 
 ## The Guide
 
@@ -10,7 +10,7 @@ I use Microsoft SQL Sever for this case study walkthrough
 3. Use ```solutions.sql``` file to check the solutions
 
 ## The Relationship Diagram
-![alt text](image-1.png)
+![alt text](images/diagram.png)
 
 ## Questions
 1. How many customers has Foodie-Fi ever had?
@@ -34,6 +34,8 @@ SELECT COUNT(DISTINCT customer_id) AS Number_of_customer
 FROM subscriptions;
 ```
 
+![alt text](images/solution1.png)
+
 **2. What is the monthly distribution of trial plan start_date values for our dataset - use the start of the month as the group by value**
 
 ``` bash
@@ -45,6 +47,8 @@ GROUP BY MONTH(s.start_date)
 ORDER BY MONTH(s.start_date);
 ```
 
+![alt text](images/solution2.png)
+
 **3. What plan start_date values occur after the year 2020 for our dataset? Show the breakdown by count of events for each plan_name**
 
 ``` bash
@@ -54,6 +58,8 @@ LEFT JOIN plans p ON s.plan_id = p.plan_id
 WHERE YEAR(s.start_date) > 2020
 GROUP BY p.plan_name;
 ```
+
+![alt text](images/solution3.png)
 
 **4. What is the customer count and percentage of customers who have churned rounded to 1 decimal place?**
 
@@ -72,6 +78,7 @@ SELECT Number_of_churned_customer, Number_of_customer,
 CAST(Number_of_churned_customer AS FLOAT) * 100 / CAST(Number_of_customer AS FLOAT) AS churn_percentage
 FROM num_of_cus, num_of_churned_cus;
 ```
+![alt text](images/solution4.png)
 
 **5. How many customers have churned straight after their initial free trial - what percentage is this rounded to the nearest whole number?**
 
@@ -89,6 +96,8 @@ WHERE c.next_plan = 4 AND c.plan_id = 0
 GROUP BY p.plan_name;
 ```
 
+![alt text](images/solution5.png)
+
 **6. What is the number and percentage of customer plans after their initial free trial?**
 
 ``` bash
@@ -104,6 +113,8 @@ LEFT JOIN plans p ON c.next_plan = p.plan_id
 WHERE c.plan_id = 0 AND c.next_plan IS NOT NULL
 GROUP BY p.plan_name, c.next_plan;
 ```
+
+![alt text](images/solution6.png)
 
 **7. What is the customer count and percentage breakdown of all 5 plan_name values at 2020-12-31?**
 
@@ -123,6 +134,8 @@ GROUP BY c.plan_id, p.plan_name
 ORDER BY c.plan_id;
 ```
 
+![alt text](images/solution7.png)
+
 **8. How many customers have upgraded to an annual plan in 2020?**
 
 ``` bash
@@ -132,6 +145,8 @@ INNER JOIN plans p ON s.plan_id = p.plan_id
 WHERE p.plan_name = 'pro annual' AND s.start_date <= '2020-12-31'
 GROUP BY p.plan_name;
 ```
+
+![alt text](images/solution8.png)
 
 **9. How many days on average does it take for a customer to an annual plan from the day they join Foodie-Fi?**
 
@@ -152,6 +167,8 @@ SELECT AVG(DATEDIFF(DAY, c1.start_date, c2.start_annual)) AS average_day
 FROM ANNUAL_CTE c2
 LEFT JOIN START_CTE c1 ON c2.customer_id = c1.customer_id;
 ```
+
+![alt text](images/solution9.png)
 
 **10. Can you further breakdown this average value into 30 day periods (i.e. 0-30 days, 31-60 days etc)**
 
@@ -183,6 +200,8 @@ FROM GROUP_DAY_CTE
 GROUP BY group_day;
 ```
 
+![alt text](images/solution10.png)
+
 **11. How many customers downgraded from a pro monthly to a basic monthly plan in 2020?**
 
 ``` bash
@@ -196,3 +215,5 @@ SELECT COUNT(*) AS num_downgrade
 FROM CTE
 WHERE next_plan = 1 AND plan_id = 2;
 ```
+
+![alt text](images/solution11.png)
